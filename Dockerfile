@@ -11,4 +11,6 @@ RUN . proxyenv && \
     rm /docker-gen-linux-amd64-$VERSION.tar.gz && \
     chmod --recursive +x /etc/my_init.d/*.sh /etc/service /usr/local/bin
 
-ENV DOCKER_HOST unix:///tmp/docker.sock
+ENV DOCKER_HOST=unix:///tmp/docker.sock \
+    DEFAULT_HOST="localhost" \
+    DEFAULT_USE_LETSENCRYPT="no"

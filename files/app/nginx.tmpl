@@ -42,8 +42,8 @@ map $http_upgrade $proxy_connection {
 server_names_hash_bucket_size 128;
 
 # Default dhparam
-{{ if (exists "/etc/nginx/dhparam/dhparam.pem") }}
-ssl_dhparam /etc/nginx/dhparam/dhparam.pem;
+{{ if (exists "/config/nginx/certs/dhparam.pem") }}
+ssl_dhparam /config/nginx/certs/dhparam.pem;
 {{ end }}
 
 # Set appropriate X-Forwarded-Ssl header
@@ -92,6 +92,8 @@ server {
 	{{ end }}
 	access_log /config/nginx/log/access.log vhost;
 	return 503;
+	root    /app;
+	include /config/nginx/config/default.d/*.conf;
 }
 
 {{ if (and (exists "/config/nginx/certs/default.crt") (exists "/config/nginx/certs/default.key")) }}
@@ -107,8 +109,14 @@ server {
 	ssl_session_tickets off;
 	ssl_certificate /config/nginx/certs/default.crt;
 	ssl_certificate_key /config/nginx/certs/default.key;
+	root    /app;
+	include /config/nginx/config/default.d/*.conf;
 }
 {{ end }}
+
+upstream {{ $.Env.DEFAULT_HOST }} {
+    server {{$.Env.DEFAULT_HOST}}:80;
+}
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
 
@@ -181,7 +189,10 @@ upstream {{ $upstream_name }} {
 {{/* Use the cert specified on the container or fallback to the best vhost match */}}
 {{ $cert := (coalesce $certName $vhostCert) }}
 
+{{ $use_le := trim (or (first (groupByKeys $containers "Env.VIRTUAL_USE_LETSENCRYPT")) "no") }}
+
 {{ $is_https := (and (ne $https_method "nohttps") (ne $cert "") (exists (printf "/config/nginx/certs/%s.crt" $cert)) (exists (printf "/config/nginx/certs/%s.key" $cert))) }}
+{{ $is_https := and (or $is_https (eq $use_le "yes")) (exists (printf "/config/letsencrypt/live/%s" $host)) }}
 
 {{ if $is_https }}
 
@@ -193,7 +204,14 @@ server {
 	listen [::]:80 {{ $default_server }};
 	{{ end }}
 	access_log /config/nginx/log/access.log vhost;
-	return 301 https://$host$request_uri;
+
+	location /.well-known {
+		root   /config/nginx/www;
+	}
+
+	location / {
+		return 301 https://$host$request_uri;
+	}
 }
 {{ end }}
 
@@ -218,6 +236,16 @@ server {
 	ssl_session_cache shared:SSL:50m;
 	ssl_session_tickets off;
 
+    {{ if eq $use_le "yes" }}
+
+    ssl_certificate /config/letsencrypt/live/{{$host}}/cert.pem;
+    ssl_certificate_key /config/letsencrypt/live/{{$host}}/privkey.pem;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    ssl_trusted_certificate /config/letsencrypt/live/{{$host}}/chain.pem;
+
+    {{ else }}
+
 	ssl_certificate /config/nginx/certs/{{ (printf "%s.crt" $cert) }};
 	ssl_certificate_key /config/nginx/certs/{{ (printf "%s.key" $cert) }};
 
@@ -230,6 +258,8 @@ server {
 	ssl_stapling_verify on;
 	ssl_trusted_certificate {{ printf "/config/nginx/certs/%s.chain.crt" $cert }};
 	{{ end }}
+
+    {{ end }}
 
 	{{ if (and (ne $https_method "noredirect") (ne $hsts "off")) }}
 	add_header Strict-Transport-Security "{{ trim $hsts }}";
@@ -288,6 +318,10 @@ server {
 	{{ else if (exists "/config/nginx/config/vhost.d/default") }}
 	include /config/nginx/config/vhost.d/default;
 	{{ end }}
+
+	location /.well-known {
+		root   /config/nginx/www;
+	}
 
 	location / {
 		{{ if eq $proto "uwsgi" }}
