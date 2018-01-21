@@ -229,12 +229,15 @@ server {
 	{{ end }}
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
-	ssl_ciphers 'ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:!DSS';
+	ssl_ciphers 'kEECDH+AES128:kEECDH:kEDH:-3DES:kRSA+AES128:kEDH+3DES:DES-CBC3-SHA:!RC4:!aNULL:!eNULL:!MD5:!EXPORT:!LOW:!SEED:!CAMELLIA:!IDEA:!PSK:!SRP:!SSLv2;';
 
 	ssl_prefer_server_ciphers on;
-	ssl_session_timeout 5m;
+	ssl_session_timeout 24h;
 	ssl_session_cache shared:SSL:50m;
 	ssl_session_tickets off;
+
+    add_header Strict-Transport-Security "max-age=31536000;";
+    add_header Content-Security-Policy-Report-Only "default-src https:; script-src https: 'unsafe-eval' 'unsafe-inline'; style-src https: 'unsafe-inline'; img-src https: data:; font-src https: data:; report-uri /csp-report";
 
     {{ if eq $use_le "yes" }}
 
@@ -243,6 +246,7 @@ server {
     ssl_stapling on;
     ssl_stapling_verify on;
     ssl_trusted_certificate /config/letsencrypt/live/{{$host}}/chain.pem;
+	ssl_dhparam /config/letsencrypt/live/{{$host}}/dhparam.pem;
 
     {{ else }}
 
@@ -251,6 +255,8 @@ server {
 
 	{{ if (exists (printf "/config/nginx/certs/%s.dhparam.pem" $cert)) }}
 	ssl_dhparam {{ printf "/config/nginx/certs/%s.dhparam.pem" $cert }};
+	{{ else if (exists (printf "/config/nginx/certs/dhparam.pem" $cert)) }}
+	ssl_dhparam {{ printf "/config/nginx/certs/dhparam.pem" $cert }};
 	{{ end }}
 
 	{{ if (exists (printf "/config/nginx/certs/%s.chain.crt" $cert)) }}
