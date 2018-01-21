@@ -241,7 +241,7 @@ server {
 
     {{ if eq $use_le "yes" }}
 
-    ssl_certificate /config/letsencrypt/live/{{$host}}/cert.pem;
+    ssl_certificate /config/letsencrypt/live/{{$host}}/fullchain.pem;
     ssl_certificate_key /config/letsencrypt/live/{{$host}}/privkey.pem;
     ssl_stapling on;
     ssl_stapling_verify on;
