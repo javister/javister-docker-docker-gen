@@ -172,8 +172,11 @@ upstream {{ $upstream_name }} {
 {{/* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
 {{ $vhost_root := or (first (groupByKeys $containers "Env.VIRTUAL_ROOT")) "/app" }}
 
-{{/* Get the VIRTUAL_ROOT By containers w/ use fastcgi root */}}
+{{/* Get the FASTCGI_INDEX By containers w/ use default index */}}
 {{ $fastcgi_index := or (first (groupByKeys $containers "Env.FASTCGI_INDEX")) "index.php" }}
+
+{{/* Get the MAX_BODY_SIZE */}}
+{{ $max_body_size := or (first (groupByKeys $containers "Env.MAX_BODY_SIZE")) "1M" }}
 
 
 {{/* Get the first cert name defined by containers w/ the same vhost */}}
@@ -227,6 +230,8 @@ server {
 	# Only allow traffic from internal clients
 	include /etc/nginx/network_internal.conf;
 	{{ end }}
+
+    client_max_body_size {{ $max_body_size }};
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
 	{{/*ssl_ciphers 'kEECDH+AES128:kEECDH:kEDH:-3DES:kRSA+AES128:kEDH+3DES:DES-CBC3-SHA:!RC4:!aNULL:!eNULL:!MD5:!EXPORT:!LOW:!SEED:!CAMELLIA:!IDEA:!PSK:!SRP:!SSLv2;';*/}}
@@ -325,6 +330,8 @@ server {
 	{{ else if (exists "/config/nginx/config/vhost.d/default") }}
 	include /config/nginx/config/vhost.d/default;
 	{{ end }}
+
+    client_max_body_size {{ $max_body_size }};
 
 	location /.well-known {
 		root   /config/nginx/www;
