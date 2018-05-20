@@ -118,6 +118,8 @@ upstream {{ $.Env.DEFAULT_HOST }} {
     server {{$.Env.DEFAULT_HOST}}:80;
 }
 
+include {{ "/config/nginx/config/config.d/*.conf" }};
+
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
 
 {{ $host := trim $host }}
@@ -150,8 +152,6 @@ upstream {{ $upstream_name }} {
 	{{ end }}
 {{ end }}
 }
-
-include {{ "/config/nginx/config/config.d/*.conf" }};
 
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
