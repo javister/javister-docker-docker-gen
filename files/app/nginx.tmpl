@@ -210,7 +210,7 @@ server {
 	{{ end }}
 	access_log /config/nginx/log/access.log vhost;
 
-	location /.well-known {
+	location /.well-known/ {
 		root   /config/nginx/www;
 	}
 
@@ -322,6 +322,8 @@ server {
 	{{ end }}
 	access_log /config/nginx/log/access.log vhost;
 
+    client_max_body_size {{ $max_body_size }};
+
 	{{ if eq $network_tag "internal" }}
 	# Only allow traffic from internal clients
 	include /etc/nginx/network_internal.conf;
@@ -333,9 +335,7 @@ server {
 	include /config/nginx/config/vhost.d/default;
 	{{ end }}
 
-    client_max_body_size {{ $max_body_size }};
-
-	location /.well-known {
+	location /.well-known/ {
 		root   /config/nginx/www;
 	}
 
