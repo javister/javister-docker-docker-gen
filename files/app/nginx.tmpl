@@ -151,6 +151,8 @@ upstream {{ $upstream_name }} {
 {{ end }}
 }
 
+include {{ "/config/nginx/config/config.d/*.conf" }};
+
 {{ $default_host := or ($.Env.DEFAULT_HOST) "" }}
 {{ $default_server := index (dict $host "" $default_host "default_server") $host }}
 
