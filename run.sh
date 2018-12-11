@@ -25,4 +25,4 @@ sync
 
 GID="$(id -g)"
 
-docker run -it --name docker-gen --env PUID=${UID} --env PGID=${GID} --rm ${PROXY_ARGS} -v ${WORK_DIR}:/config:rw javister-docker-docker.bintray.io/javister/javister-docker-docker-gen:0.7.3 $@
+docker run -it --name docker-gen --env PUID=${UID} --env PGID=${GID} --rm ${PROXY_ARGS} -v ${WORK_DIR}:/config:rw javister-docker-docker.bintray.io/javister/javister-docker-docker-gen:0.7.4 $@
